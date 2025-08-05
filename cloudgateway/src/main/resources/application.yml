@@ -1,0 +1,112 @@
+spring:
+  application:
+    name: API-Gateway
+  config:
+    import: configserver:http://${CONFIG_SERVER_URL:localhost}:9296
+
+  cloud:
+    gateway:
+      default-filters:
+        - TokenRelay
+      discovery:
+        locator:
+            enable: true
+      routes:
+        - id: orderservice
+          uri: lb://orderservice
+          predicates:
+            - Path=/order/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderservice
+                fallbackuri: forward:/orderServiceFallBack
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 1
+        - id: productservice
+          uri: lb://productservice
+          predicates:
+            - Path=/product/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: productservice
+                fallbackuri: forward:/productServiceFallBack
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 1
+        - id: paymentservice
+          uri: lb://paymentservice
+          predicates:
+            - Path=/payment/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: paymentservice
+                fallbackuri: forward:/paymentServiceFallBack
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 1
+  security:
+    oauth2:
+      client:
+        registration:
+          auth0:
+            client-id: ${CLIENT_ID}
+            client-secret: ${CLIENT_SECRET}
+            scope: openid, email, profile, offline_access, Customer, Admin
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/auth0"
+        provider:
+          auth0:
+            issuer-uri: https://dev-jhzvaus0n138810d.us.auth0.com/
+            jwk-set-uri: https://dev-jhzvaus0n138810d.us.auth0.com/.well-known/jwks.json
+      resourceserver:
+        jwt:
+          issuer-uri: https://dev-jhzvaus0n138810d.us.auth0.com/
+        
+auth0:
+  audience: https://dev-jhzvaus0n138810d.us.auth0.com/api/v2/
+  # security:
+  #   oauth2:
+  #     client:
+  #       registration:
+  #         okta:
+  #           client-id: 0oap4hvwfgWvqtBx55d7
+  #           client-secret: NhfSvgojv0q8ElDjOX-4a4NU8UXqTISZ66FKxXr_3QaXUpHr8yO0rWJeJtqpeSp4
+  #           scope: 
+  #             - openid 
+  #             - profile 
+  #             - email
+  #             - offline_access
+  #           authorization-grant-type: authorization_code
+  #           redirect-uri: http://localhost:9090/login/oauth2/code/okta
+  #       provider:
+  #         okta:
+  #           issuer-uri: https://dev-51756708.okta.com/oauth2/default
+  #           authorization-uri: https://dev-51756708.okta.com/oauth2/default/v1/authorize
+  #           token-uri: https://dev-51756708.okta.com/oauth2/default/v1/token
+  #           user-info-uri: https://dev-51756708.okta.com/oauth2/default/v1/userinfo
+  #           jwk-set-uri: https://dev-51756708.okta.com/oauth2/default/v1/keys
+  #           user-name-attribute: sub
+
+# okta:
+#   oauth2:
+#     issuer: https://dev-51756708.okta.com/oauth2/default
+#     audience: api://default
+#     client-id: 0oap4hvwfgWvqtBx55d7
+#     client-secret: NhfSvgojv0q8ElDjOX-4a4NU8UXqTISZ66FKxXr_3QaXUpHr8yO0rWJeJtqpeSp4
+#     scopes: 
+#       - openid 
+#       - profile 
+#       - email
+#       - offline_access
+
+
+
+server:
+  port: 9090
